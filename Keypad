@@ -1,0 +1,133 @@
+
+/*** 
+ *  Keypad - A 4 *4 keypad has been used to take the input. Keyboard is used for entering a password to enter into Home security system. We are using a library from the arduino website 
+ *  keypad.h.  Pins were used for the Keypad are 2, 3 , 4 , 5, 6 , 7, 8, 9,
+ *  Lcd Screen -  Lcd screen is used to display the messages. We are using a LiquidCrystal_I2C.h library from the Arduino Website. Pins are used are as follows:
+ *  
+ *   * is used to confirm that password has been pressed
+ *  
+ *  LED      ||||||     Arduino UNO
+ *  Ground   ||||||     Ground
+ *  VCC      ||||||     5 volt
+ *  SDA      ||||||     Analog pin 4  
+ *  SCL      ||||||     Analog pin 5
+ *  
+ *  0X27 set the lcd for 20 character and 4 line display
+ *  Set the pins on the I2C chip used for LCD connections:
+ *                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
+ *  
+ *  Password - For the password we used a library from Arduino Password.h. The password gets reset after the invalid password gets entered.
+***/
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "Keypad.h"
+#include <Password.h>
+
+LiquidCrystal_I2C lcd(0x27,2,1,0,4,5,6,7,3, POSITIVE); //*  0X27 set the lcd for 20 character and 4 line display
+//LiquidCrystal_I2C lcd(0x3F,20,4);
+
+Password password = "1234"; //password to open the door
+//char* password = "1234"; // password to open the door
+int currentPosition = 0; // to check all the digits
+
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+
+
+char keys[ROWS][COLS] = {
+{'1','2','3','A'},
+{'4','5','6','B'},
+{'7','8','9','C'},
+{'#','0','*', 'D'}
+};
+byte rowPins[ROWS] = { 9, 8,7,6}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {5,4,3,2}; //connect to the column pinouts of the keypad
+ 
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+
+ 
+void setup()
+{
+  Serial.begin(9600);
+  lcd.begin(16,4); // initialize the lcd displayAtEntrance(); 
+  displayAtEntrance();
+  keypad.addEventListener(keypadEvent); //add an event listener for this keypad
+ // displayAtEntrance();
+  delay(2000);
+  keypad.setDebounceTime(20);
+ 
+}
+
+ 
+void loop()
+{
+  keypad.getKey();
+
+}
+void displayAtEntrance(){
+   // lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Home Security system");
+   lcd.setCursor(0,1);
+   lcd.print("Enter password ");
+  
+ }
+
+void keypadEvent(KeypadEvent ekey)
+{
+  
+  switch (keypad.getState()){
+  case PRESSED:
+   // lcd.print("Pressed key: ");
+    lcd.print("*");
+    switch(ekey){
+      case '*' : checkPassword();
+        break;
+        default: password.append(ekey);
+        
+    }
+  } 
+}
+void checkPassword(){
+   if(password.evaluate())
+   {
+      correctPassword();
+   }
+   else
+   {
+      wrongPassword();
+    }
+}
+void correctPassword(){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("********************");
+    lcd.setCursor(2,1);
+    lcd.print("Access Granted");
+    lcd.setCursor(6,2);
+    lcd.print("   Welcome!  ");
+    lcd.setCursor(4,3);
+    lcd.print("********************");
+   
+   
+    delay(200);
+}
+void wrongPassword(){
+   int count = 0 ;// user can enter 3 time
+    lcd.clear();
+  
+    
+         lcd.setCursor(0,0);
+         lcd.print("********************");
+         lcd.setCursor(2,1);
+         lcd.print("Access denied");
+         password.reset();
+         lcd.setCursor(4,3);
+          lcd.print("********************");
+          delay(5000);
+         lcd.clear();
+         displayAtEntrance();
+        
+      
+  }
